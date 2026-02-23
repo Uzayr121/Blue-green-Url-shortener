@@ -1,9 +1,12 @@
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import RedirectResponse
-import os, hashlib, time
+from fastapi.staticfiles import StaticFiles
+import hashlib, time
 from .ddb import put_mapping, get_mapping
 
 app = FastAPI()
+
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
 @app.get("/healthz")
 def health():
@@ -15,6 +18,7 @@ async def shorten(req: Request):
     url = body.get("url")
     if not url:
         raise HTTPException(400, "url required")
+
     short = hashlib.sha256(url.encode()).hexdigest()[:8]
     put_mapping(short, url)
     return {"short": short, "url": url}
