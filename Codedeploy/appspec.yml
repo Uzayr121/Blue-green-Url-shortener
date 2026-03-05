@@ -3,7 +3,7 @@ Resources:
   - TargetService:
       Type: AWS::ECS::Service
       Properties:
-        TaskDefinition: arn:aws:ecs:eu-west-2:903497499610:task-definition/ECS-vpc:2
+        TaskDefinition: arn:aws:ecs:eu-west-2:903497499610:task-definition/blue-green-task:12
         LoadBalancerInfo:
-          ContainerName: green # has to match the name of the container in the task definition
+          ContainerName: app # has to match the name of the container in the task definition
           ContainerPort: 8080
