@@ -1,0 +1,38 @@
+name: Terraform apply
+
+on:
+    workflow_run:
+        workflows: ["Terraform plan"] # Trigger this workflow when the "Terraform plan" workflow completes
+        types:
+            - completed
+
+permissions:
+  id-token: write   # Allows requesting an OIDC token   
+  contents: read	# Required for actions/checkout
+
+jobs:
+  TerraformApply:
+    name: Terraform Apply
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: latest
+
+      - name: configure aws credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.TERRAFORM_ARN }}
+          aws-region: eu-west-2
+
+      - name: Terraform Init
+        working-directory: ./terraform
+        run: terraform init
+
+      - name: Terraform apply
+        working-directory: ./terraform
+        run: terraform apply -auto-approve
