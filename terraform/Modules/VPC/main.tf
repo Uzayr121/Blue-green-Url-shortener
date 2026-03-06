@@ -131,3 +131,19 @@ resource "aws_vpc_endpoint_route_table_association" "dynamodb" {
   route_table_id  = aws_route_table.public.id
   vpc_endpoint_id = aws_vpc_endpoint.dynamodb.id
 }
+
+resource "aws_vpc_endpoint_security_group_association" "ecr-api" {
+  security_group_id = var.ecr_sg
+  vpc_endpoint_id   = aws_vpc_endpoint.ecr-api.id
+  
+}
+resource "aws_vpc_endpoint_security_group_association" "ecr-dkr" {
+  security_group_id = var.ecr_sg
+  vpc_endpoint_id   = aws_vpc_endpoint.ecr_dkr.id
+  
+}
+resource "aws_vpc_endpoint_security_group_association" "cloudwatch" {
+  security_group_id = var.cloudwatch_sg
+  vpc_endpoint_id   = aws_vpc_endpoint.cloudwatch.id
+  
+}

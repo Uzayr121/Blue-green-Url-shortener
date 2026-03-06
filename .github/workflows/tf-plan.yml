@@ -54,7 +54,7 @@ jobs:
           echo "Checkov installed successfully"
 
       - name: Run Checkov
-        working-directory: ./Terraform
+        working-directory: ./terraform
         run: |
           checkov -d . --quiet --soft-fail
           echo "Checkov scan completed successfully"
