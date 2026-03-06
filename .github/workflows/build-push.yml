@@ -56,7 +56,7 @@ jobs:
             image-ref: ${{ secrets.ECR_REPOSITORY }}:latest
             format: 'table'
             exit-code: '1'
-            severity: 'CRITICAL'
+            severity: 'CRITICAL,HIGH'
             ignore-unfixed: true
 
         - name: Push image to Amazon ECR
