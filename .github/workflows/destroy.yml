@@ -1,0 +1,44 @@
+name: Terraform destroy
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: type 'destroy' to destroy
+        required: true
+        default: 'no'
+
+
+jobs:
+    destroy:
+        name: Destroy infrastructure
+        runs-on: ubuntu-latest
+        steps: 
+        - name: Checkout code
+          uses: actions/checkout@v2
+                
+        - name: Abort if Not Confirmed
+          if: ${{ github.event.inputs.confirmation != 'destroy' }}  # Runs for any input other than 'destroy'
+          run: |
+             echo "Workflow is aborted because you did not say 'destroy'."
+             exit 1 # Exit with a non-zero status to fail the job
+
+        - name: Set up Terraform
+          uses: hashicorp/setup-terraform@v2
+          with:
+           terraform_version: 1.11.1
+
+        - name: configure aws credentials
+          uses: aws-actions/configure-aws-credentials@v2
+          with: 
+              role-to-assume: ${{ secrets.TERRAFORM_ARN }}
+              aws-region: eu-west-2
+
+        - name: Terraform init
+          working-directory: ./Terraform # Specify the directory where your Terraform files are located
+          run: terraform init
+
+        - name: Terraform destroy # This step will only run if the confirmation input is 'destroy'
+          working-directory: ./Terraform # Specify the directory where your Terraform files are located
+          run: terraform destroy -auto-approve # Automatically approve the destroy step
+    

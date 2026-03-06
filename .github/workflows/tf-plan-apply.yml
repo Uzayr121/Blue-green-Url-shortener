@@ -1,0 +1,117 @@
+name: Terraform plan
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: type 'plan' to confirm
+        required: true
+        default: 'no'
+
+jobs:
+  Lint:
+    name: Tflint 
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Abort if Not Confirmed
+        if: ${{ github.event.inputs.confirmation != 'plan' }}
+        run: |
+          echo "Workflow is aborted because you did not say 'plan'."
+          exit 1
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: latest
+
+      - name: set up Tflint
+        uses: terraform-linters/setup-tflint@master
+        with: 
+          tflint_version: latest
+
+      - name: Run Tflint
+        working-directory: ./Terraform
+        run: tflint --recursive
+        continue-on-error: true
+
+  Checkov:
+    name: Checkov scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Install Checkov
+        run: |
+          pip install checkov
+          echo "Checkov installed successfully"
+
+      - name: Run Checkov
+        working-directory: ./Terraform
+        run: |
+          checkov -d . --quiet --soft-fail
+          echo "Checkov scan completed successfully"
+
+
+  TerraformPlan:
+    name: Terraform Plan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: latest
+
+      - name: configure aws credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with: 
+            role-to-assume: ${{ secrets.TERRAFORM_ARN }}
+            aws-region: eu-west-2
+
+      - name: Terraform Init
+        working-directory: ./terraform
+        run: terraform init
+
+      - name: Terraform fmt
+        working-directory: ./terraform  
+        run: terraform fmt
+
+      - name: Terraform Validate
+        working-directory: ./terraform
+        run: terraform validate
+
+      - name: Terraform Plan
+        working-directory: ./terraform
+        run: terraform plan
+
+  TerraformApply:
+    name: Terraform Apply
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: latest
+
+      - name: configure aws credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with: 
+            role-to-assume: ${{ secrets.TERRAFORM_ARN }}
+            aws-region: eu-west-2
+
+      - name: Terraform Init
+        working-directory: ./terraform
+        run: terraform init
+
+      - name: Terraform apply
+        working-directory: ./terraform
+        run: terraform apply -auto-approve
