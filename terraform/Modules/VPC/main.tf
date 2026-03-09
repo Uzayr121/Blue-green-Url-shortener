@@ -113,12 +113,14 @@ resource "aws_vpc_endpoint" "dynamodb" {
 }
 resource "aws_vpc_endpoint" "cloudwatch" {
   vpc_id = aws_vpc.main.id
+  subnet_ids = [aws_subnet.private_1.id, aws_subnet.private_2.id]
   service_name = "com.amazonaws.eu-west-2.logs"
   private_dns_enabled = true
   vpc_endpoint_type = "Interface"
 }
 resource "aws_vpc_endpoint" "ecr-api" {
   vpc_id = aws_vpc.main.id
+  subnet_ids = [aws_subnet.private_1.id, aws_subnet.private_2.id]
   service_name = "com.amazonaws.eu-west-2.ecr.api"
   private_dns_enabled = true
   vpc_endpoint_type = "Interface"
@@ -126,6 +128,7 @@ resource "aws_vpc_endpoint" "ecr-api" {
 }
 resource "aws_vpc_endpoint" "ecr_dkr" {
   vpc_id = aws_vpc.main.id
+  subnet_ids = [aws_subnet.private_1.id, aws_subnet.private_2.id]
   service_name = "com.amazonaws.eu-west-2.ecr.dkr"
   private_dns_enabled = true
   vpc_endpoint_type = "Interface"
