@@ -26,7 +26,7 @@ jobs:
         - name: Set up Terraform
           uses: hashicorp/setup-terraform@v2
           with:
-           terraform_version: 1.11.1
+           terraform_version: latest
 
         - name: configure aws credentials
           uses: aws-actions/configure-aws-credentials@v2
@@ -35,10 +35,10 @@ jobs:
               aws-region: eu-west-2
 
         - name: Terraform init
-          working-directory: ./Terraform # Specify the directory where your Terraform files are located
+          working-directory: ./terraform # Specify the directory where your Terraform files are located
           run: terraform init
 
         - name: Terraform destroy # This step will only run if the confirmation input is 'destroy'
-          working-directory: ./Terraform # Specify the directory where your Terraform files are located
+          working-directory: ./terraform # Specify the directory where your Terraform files are located
           run: terraform destroy -auto-approve # Automatically approve the destroy step
     
