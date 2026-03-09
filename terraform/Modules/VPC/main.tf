@@ -100,26 +100,31 @@ resource "aws_route_table_association" "private_2" {
 resource "aws_vpc_endpoint" "s3" {
   vpc_id       = aws_vpc.main.id
   service_name = "com.amazonaws.us-west-2.s3"
+  vpc_endpoint_type = "gateway"
 }
 resource "aws_vpc_endpoint" "dynamodb" {
   vpc_id = aws_vpc.main.id
   service_name = "com.amazonaws.eu-west-2.dynamodb"
+  vpc_endpoint_type = "gateway"
 }
 resource "aws_vpc_endpoint" "cloudwatch" {
   vpc_id = aws_vpc.main.id
   service_name = "com.amazonaws.eu-west-2.logs"
   private_dns_enabled = true
+  vpc_endpoint_type = "Interface"
 }
 resource "aws_vpc_endpoint" "ecr-api" {
   vpc_id = aws_vpc.main.id
   service_name = "com.amazonaws.eu-west-2.ecr.api"
   private_dns_enabled = true
+  vpc_endpoint_type = "Interface"
   
 }
 resource "aws_vpc_endpoint" "ecr_dkr" {
   vpc_id = aws_vpc.main.id
   service_name = "com.amazonaws.eu-west-2.ecr.dkr"
   private_dns_enabled = true
+  vpc_endpoint_type = "Interface"
   
 }
 
