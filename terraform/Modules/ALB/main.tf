@@ -5,7 +5,7 @@ resource "aws_lb" "test" {
   security_groups            = [var.alb_sg] # reference to the security group of the ALB
   subnets                    = [var.public_subnet_id_1, var.public_subnet_id_2]
   drop_invalid_header_fields = true
-  region = "eu-west-2a, seu-west-2b"
+
 
 }
 
