@@ -8,6 +8,10 @@ on:
         required: true
         default: 'no'
 
+permissions:
+  id-token: write   # Allows requesting an OIDC token 
+  contents: read	# Required for actions/checkout
+
 
 jobs:
     destroy:
