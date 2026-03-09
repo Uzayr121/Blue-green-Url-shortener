@@ -1,0 +1,110 @@
+name: Blue-Green Deployment
+
+on:
+    workflow_dispatch:
+        inputs:
+            confirmation:
+                description: type 'deploy' to confirm
+                required: true
+                default: 'no'
+
+permissions:
+  id-token: write   # Allows requesting an OIDC token
+  contents: read	# Required for actions/checkout
+
+jobs:
+    app-deploy:
+        name: Deploy application
+        runs-on: ubuntu-latest
+        outputs:
+          image: ${{ steps.build-and-push.outputs.image }}
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v2
+
+            - name: Abort if Not Confirmed
+              if: ${{ github.event.inputs.confirmation != 'deploy' }}  # Runs for any input other than 'deploy'
+              run: |
+                echo "Workflow is aborted because you did not say 'deploy'."
+                exit 1 # Exit with a non-zero status to fail the job
+
+            - name: configure aws credentials
+              uses: aws-actions/configure-aws-credentials@v2
+              with: 
+                  role-to-assume: ${{ secrets.ECR_ROLE_ARN }}
+                  aws-region: eu-west-2
+
+            - name: log-in to AWS
+              id: login-pf-aws-ecr
+              uses: aws-actions/amazon-ecr-login@v1
+
+            
+
+            - name: build and push new image
+              id: build-and-push
+              env: 
+                ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+                IMAGE_TAG: latest
+              run: |
+                cd ./app
+                docker build -t $ECR_REPOSITORY:$IMAGE_TAG .
+                docker push $ECR_REPOSITORY:$IMAGE_TAG
+                Image_URI=$(aws ecr describe-repositories --repository-names $ECR_REPOSITORY --query "repositories[0].repositoryUri" --output text)
+                echo "image=$Image_URI:$IMAGE_TAG">> $GITHUB_OUTPUT
+
+
+    blue-green-deploy:
+        name: Blue Green Deploy
+        runs-on: ubuntu-latest
+        needs: app-deploy
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v2
+
+            - name: configure aws credentials
+              uses: aws-actions/configure-aws-credentials@v2
+              with: 
+                  role-to-assume: ${{ secrets.CODE_DEPLOY_ARN }}
+                  aws-region: eu-west-2
+
+            - name: Task definition download
+              id: download-task-def
+              env:
+                ecs_task_def_name: example_codedeploy_ecs_task_def
+              run: |
+                aws ecs describe-task-definition --task-definition "$ecs_task_def_name" --query taskDefinition > task-definition.json
+
+            - name: Fill in the new image ID in the Amazon ECS task definition
+              id: update-task-def-image
+              uses: aws-actions/amazon-ecs-render-task-definition@v1
+              with:
+                task-definition: task-definition.json
+                container-name: container_name
+                image: ${{ needs.app-deploy.outputs.image }}
+
+            - name: Set appspec.json values
+              id: set-appspec-values
+              env:
+                cluster: blue-green-cluster
+                service: blue-green-app
+                codedeploy-application: ecs_codedeploy_app
+                codedeploy-deployment-group: blue-green-deployment-group
+                container_name: app
+              run: |
+                export TASK_DEF_ARN=$(aws ecs describe-task-definition --task-definition="$container_name" | jq '.taskDefinition.taskDefinitionArn')
+                cat ./.github/workflows/appspec.json | jq --arg key "$TASK_DEF_ARN" '.Resources[].TargetService.Properties.TaskDefinition=$key'> .aws/appspec.json
+                sed -i 's#\\"##g' .aws/appspec.json
+
+                
+            - name: ECS task deployment using CodeDeploy
+              uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+              env:
+                ACTIONS_STEP_DEBUG: true #enable step debug logging
+              with:
+                task-definition: 
+                service: blue-green-app
+                cluster: blue-green-cluster
+                wait-for-service-stability: true
+                codedeploy-appspec: .aws/appspec.json
+                codedeploy-application: ecs_codedeploy_app
+                codedeploy-deployment-group: blue-green-deployment-group
