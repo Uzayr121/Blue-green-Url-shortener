@@ -6,6 +6,13 @@ on:
         types:
             - completed
 
+    workflow_dispatch:
+        inputs:
+            confirmation:
+                description: type 'apply' to confirm
+                required: true
+                default: 'no'
+
 permissions:
   id-token: write   # Allows requesting an OIDC token   
   contents: read	# Required for actions/checkout
