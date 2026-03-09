@@ -44,5 +44,8 @@ jobs:
 
         - name: Terraform destroy # This step will only run if the confirmation input is 'destroy'
           working-directory: ./terraform # Specify the directory where your Terraform files are located
+          env:
+          TF_VAR_zone_id: ${{ secrets.TF_VAR_ZONE_ID }}
+          TF_VAR_cloudflare_api_token: ${{ secrets.TF_VAR_CLOUDFLARE_API_TOKEN }}
           run: terraform destroy -auto-approve # Automatically approve the destroy step
     
