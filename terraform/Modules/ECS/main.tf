@@ -20,7 +20,7 @@ resource "aws_ecs_task_definition" "task_def" {
   container_definitions = jsonencode([
     {
       name  = var.container_name
-      image = "903497499610.dkr.ecr.eu-west-2.amazonaws.com/url-shortener:latest"
+      image = "903497499610.dkr.ecr.eu-west-2.amazonaws.com/url-shortener@sha256:7b1008eb7e69187238fcc0c7e54a406f015f988ffe0610c2d896e5bdf2094c59"
       environment = [
         {
           name  = "TABLE_NAME"
