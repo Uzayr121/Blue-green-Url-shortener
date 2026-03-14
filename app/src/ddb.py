@@ -1,12 +1,5 @@
 import os, boto3
 
-dynamodb = boto3.resource(
-    "dynamodb",
-    region_name=os.environ.get("AWS_REGION", "eu-west-2")
-)
-
-_table = dynamodb.Table(os.environ["TABLE_NAME"])
-
 # TABLE_NAME must be provided via ECS task environment
 _table = boto3.resource("dynamodb").Table(os.environ["TABLE_NAME"])
 
