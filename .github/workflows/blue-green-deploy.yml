@@ -43,7 +43,7 @@ jobs:
             - name: build and push new image
               id: build-and-push
               env: 
-                ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+                ECR_REPOSITORY: 903497499610.dkr.ecr.eu-west-2.amazonaws.com/url-shortener
                 IMAGE_TAG: latest
               run: |
                 cd ./app
