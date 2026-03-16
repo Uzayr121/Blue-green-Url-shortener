@@ -102,7 +102,7 @@ jobs:
               env:
                 ACTIONS_STEP_DEBUG: true #enable step debug logging
               with:
-                task-definition: blue-green-task
+                task-definition: task-definition.json
                 service: blue-green-app
                 cluster: blue-green-cluster
                 wait-for-service-stability: true
