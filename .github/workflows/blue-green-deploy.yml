@@ -107,5 +107,5 @@ jobs:
                 cluster: blue-green-cluster
                 wait-for-service-stability: true
                 codedeploy-appspec: .aws/appspec.json
-                codedeploy-application: ecs_codedeploy_app
+                codedeploy-application: ecs-codedeploy-app
                 codedeploy-deployment-group: blue-green-deployment-group
