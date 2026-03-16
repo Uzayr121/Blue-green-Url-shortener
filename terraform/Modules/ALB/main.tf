@@ -72,7 +72,7 @@ resource "aws_lb_listener" "https_listener" {
 resource "aws_lb_target_group" "green-tg" {
   name        = "green-tg"
   port        = 8080
-  protocol    = "HTTP"
+  protocol    = "HTTPS"
   target_type = "ip"
   vpc_id      = var.vpc_id
 
