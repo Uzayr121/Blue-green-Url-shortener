@@ -42,14 +42,14 @@ jobs:
 
             - name: build and push new image
               id: build-and-push
-              env: 
-                ECR_REPOSITORY: 903497499610.dkr.ecr.eu-west-2.amazonaws.com/url-shortener
-                IMAGE_TAG: latest
+              #env: 
+               # ECR_REPOSITORY: 903497499610.dkr.ecr.eu-west-2.amazonaws.com/url-shortener
+                #IMAGE_TAG: latest
               run: |
                 cd ./app
-                docker build -t $ECR_REPOSITORY:$IMAGE_TAG .
-                docker push $ECR_REPOSITORY:$IMAGE_TAG
-                echo "image=$ECR_REPOSITORY:$IMAGE_TAG">> $GITHUB_OUTPUT
+                docker build -t 903497499610.dkr.ecr.eu-west-2.amazonaws.com/url-shortener:latest .
+                docker push 903497499610.dkr.ecr.eu-west-2.amazonaws.com/url-shortener:latest
+                echo "image=903497499610.dkr.ecr.eu-west-2.amazonaws.com/url-shortener:latest">> $GITHUB_OUTPUT
 
 
     blue-green-deploy:
