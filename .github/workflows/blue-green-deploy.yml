@@ -66,6 +66,9 @@ jobs:
                   role-to-assume: ${{ secrets.CODE_DEPLOY_ARN }}
                   aws-region: eu-west-2
 
+            - name: testing aws cli
+              run: aws sts get-caller-identity
+
             - name: Task definition download
               id: download-task-def
               env:
