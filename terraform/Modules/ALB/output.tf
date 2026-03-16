@@ -2,7 +2,7 @@ output "blue_tg_arn" {
   value = aws_lb_target_group.blue-tg.arn
 }
 output "listener_arn" {
-  value = aws_lb_listener.http_listener.arn
+  value = aws_lb_listener.https_listener.arn
 }
 output "blue_tg_name" {
   value = aws_lb_target_group.blue-tg.name
