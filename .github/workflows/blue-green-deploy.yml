@@ -13,43 +13,7 @@ permissions:
   contents: read	# Required for actions/checkout
 
 jobs:
-    # app-deploy:
-    #     name: Deploy application
-    #     runs-on: ubuntu-latest
-    #     outputs:
-    #       image: ${{ steps.build-and-push.outputs.image }}
-    #     steps:
-    #         - name: Checkout code
-    #           uses: actions/checkout@v2
-
-    #         - name: Abort if Not Confirmed
-    #           if: ${{ github.event.inputs.confirmation != 'deploy' }}  # Runs for any input other than 'deploy'
-    #           run: |
-    #             echo "Workflow is aborted because you did not say 'deploy'."
-    #             exit 1 # Exit with a non-zero status to fail the job
-
-    #         - name: configure aws credentials
-    #           uses: aws-actions/configure-aws-credentials@v2
-    #           with: 
-    #               role-to-assume: ${{ secrets.ECR_ROLE_ARN }}
-    #               aws-region: eu-west-2
-
-    #         - name: log-in to AWS
-    #           id: login-pf-aws-ecr
-    #           uses: aws-actions/amazon-ecr-login@v1
-
-            
-
-    #         - name: build and push new image
-    #           id: build-and-push
-    #           #env: 
-    #             ECR_REPOSITORY: 903497499610.dkr.ecr.eu-west-2.amazonaws.com/url-shortener
-    #             IMAGE_TAG: latest
-    #           run: |
-    #             cd ./app
-    #             docker build -t 903497499610.dkr.ecr.eu-west-2.amazonaws.com/url-shortener:latest .
-    #             docker push 903497499610.dkr.ecr.eu-west-2.amazonaws.com/url-shortener:latest
-    #             echo "image=903497499610.dkr.ecr.eu-west-2.amazonaws.com/url-shortener:latest">> $GITHUB_OUTPUT
+    
 
 
     blue-green-deploy:
@@ -59,6 +23,13 @@ jobs:
             - name: Checkout code
               uses: actions/checkout@v2
 
+            - name: Abort if Not Confirmed
+              if: ${{ github.event.inputs.confirmation != 'deploy' }}  # Runs for any input other than 'deploy'
+              run: |
+                 echo "Workflow is aborted because you did not say 'deploy'."
+                 exit 1 # Exit with a non-zero status to fail the job
+
+
             - name: configure aws credentials
               uses: aws-actions/configure-aws-credentials@v2
               with: 
@@ -67,6 +38,15 @@ jobs:
 
             - name: testing aws cli
               run: aws sts get-caller-identity
+
+            - name: build and push new image
+              id: build-and-push
+              run: |
+                cd ./app
+                docker build -t ${{ secrets.ECR_REPOSITORY }}:${{ github.sha }} .
+                docker push ${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}
+
+            
 
             - name: Task definition download
               id: download-task-def
@@ -81,7 +61,7 @@ jobs:
               with:
                 task-definition: task-definition.json
                 container-name: app
-                image:  ${{ secrets.ECR_REPOSITORY }}:latest
+                image:  ${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}
 
             - name: Set appspec.json values
               id: set-appspec-values
