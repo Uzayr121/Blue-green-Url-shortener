@@ -1,244 +1,258 @@
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import RedirectResponse, HTMLResponse
-
-import hashlib
-import time
-
-from .ddb import put_mapping, get_mapping
-
+from fastapi.responses import RedirectResponse
+from fastapi.responses import HTMLResponse
+import os, hashlib, time
+from ddb import put_mapping, get_mapping
 
 app = FastAPI()
 
-
-HTML = """<!DOCTYPE html>
+@app.get("/", response_class=HTMLResponse)
+def home():
+    return """
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>shorten</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet"/>
-<style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-body {
-min-height: 100vh;
-display: flex;
-align-items: center;
-justify-content: center;
-background: #0c0c0c;
-font-family: 'IBM Plex Mono', monospace;
-color: #e0e0e0;
-padding: 24px;
-}
-.card {
-width: 100%;
-max-width: 560px;
-}
-h1 {
-font-size: 13px;
-font-weight: 600;
-letter-spacing: 0.2em;
-text-transform: uppercase;
-color: #b0f040;
-margin-bottom: 32px;
-}
-.row {
-display: flex;
-border: 1px solid #2a2a2a;
-}
-.row:focus-within { border-color: #444; }
-input {
-flex: 1;
-padding: 14px 16px;
-background: #141414;
-border: none;
-outline: none;
-color: #e0e0e0;
-font-family: inherit;
-font-size: 13px;
-caret-color: #b0f040;
-}
-input::placeholder { color: #444; }
-button {
-padding: 14px 20px;
-background: #b0f040;
-color: #0c0c0c;
-border: none;
-cursor: pointer;
-font-family: inherit;
-font-size: 12px;
-font-weight: 600;
-letter-spacing: 0.1em;
-text-transform: uppercase;
-transition: background 0.1s;
-}
-button:hover { background: #c5ff50; }
-button:disabled { background: #2a2a2a; color: #555; cursor: not-allowed; }
-#result {
-margin-top: 20px;
-min-height: 56px;
-font-size: 13px;
-}
-.success {
-border: 1px solid #b0f040;
-padding: 16px;
-background: rgba(176,240,64,0.05);
-}
-.success-label {
-font-size: 10px;
-color: #b0f040;
-letter-spacing: 0.15em;
-text-transform: uppercase;
-margin-bottom: 8px;
-opacity: 0.6;
-}
-.short-url {
-color: #b0f040;
-font-size: 18px;
-font-weight: 600;
-display: flex;
-align-items: center;
-gap: 12px;
-}
-.short-url a { color: inherit; text-decoration: none; }
-.short-url a:hover { text-decoration: underline; }
-.copy {
-font-size: 10px;
-letter-spacing: 0.08em;
-background: transparent;
-border: 1px solid #333;
-color: #888;
-padding: 4px 10px;
-text-transform: uppercase;
-}
-.copy:hover {
-border-color: #b0f040;
-color: #b0f040;
-background: transparent;
-}
-.error {
-border: 1px solid #ff4545;
-padding: 14px 16px;
-color: #ff4545;
-font-size: 12px;
-}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>URL Shortener</title>
+  <style>
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
+      line-height:1.4;
+      background:#16a34a;
+
+      color:#ffffff;
+    }
+
+    .wrap{min-height:100vh;display:grid;place-items:center;padding:24px}
+
+    .hero{
+      text-align:center;
+      margin-bottom:24px;
+    }
+
+    .hero h1{
+      margin:0;
+      font-size:34px;
+      font-weight:700;
+    }
+
+    .hero p{
+      margin-top:8px;
+      opacity:.9;
+    }
+
+    .card{
+      width:min(720px,100%);
+      border:1px solid rgba(255,255,255,.3);
+      border-radius:14px;
+      padding:18px;
+      background:rgba(0,0,0,.15);
+    }
+
+    .row{display:flex;gap:10px;flex-wrap:wrap}
+
+    input{
+   flex:1 1 520px;
+   min-width:300px;
+   padding:16px;
+   font-size:16px;
+   border-radius:12px;
+   border:1px solid rgba(255,255,255,.4);
+   background:#ffffff;
+   color:#000000;
+   }
+    button{
+      padding:12px 14px;
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,.4);
+      background:#000000;
+      color:#ffffff;
+      cursor:pointer;
+      font-weight:600;
+    }
+
+    button:disabled{opacity:.6;cursor:not-allowed}
+
+    #result{
+      margin-top:18px;
+      padding:18px;
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,.3);
+      background:rgba(0,0,0,.25);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      min-height:80px;
+    }
+
+    #short{
+      overflow-wrap:anywhere;
+      font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
+      font-size:16px;
+      color:#ffffff;
+    }
+
+    #msg{
+      margin-top:10px;
+      min-height:20px;
+      font-size:14px;
+    }
+  </style>
 </head>
 <body>
-<div class="card">
-<h1>// url shortener</h1>
 
-<div class="row">
-<input id="url" type="url" placeholder="https://your-long-url.com/..." autocomplete="off" spellcheck="false" />
-<button id="btn" onclick="shorten()">Shorten</button>
-</div>
+<div class="wrap">
 
-<div id="result"></div>
+  <div>
+    <div class="hero">
+      <h1>Jawwad’s URL Shortener</h1>
+      <p>Turn long URLs into short, shareable links.</p>
+    </div>
+
+    <div class="card">
+
+      <div class="row">
+        <input id="url" inputmode="url" autocomplete="off" placeholder="https://example.com" />
+        <button id="btn" onclick="shorten()">Shorten</button>
+      </div>
+
+      <div id="result">
+        <a id="short" href="#" target="_blank" rel="noopener noreferrer"></a>
+        <button id="copy" onclick="copyShort()" disabled>Copy</button>
+      </div>
+
+      <div id="msg"></div>
+
+    </div>
+  </div>
+
 </div>
 
 <script>
-document.getElementById('url').addEventListener('keydown', e => e.key === 'Enter' && shorten());
+  const $ = (id) => document.getElementById(id);
+  const elUrl = $("url"),
+        elBtn = $("btn"),
+        elMsg = $("msg"),
+        elShort = $("short"),
+        elCopy = $("copy");
 
-async function shorten() {
+  let last = "";
 
-    const input = document.getElementById('url');
-    const btn = document.getElementById('btn');
-    const result = document.getElementById('result');
+  elUrl.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") shorten();
+  });
 
-    const url = input.value.trim();
-    if (!url) return;
+  const setMsg = (t, bad=false) => {
+    elMsg.textContent = t;
+    elMsg.style.color = bad ? "#ffb4b4" : "#ffffff";
+  };
 
-    btn.disabled = true;
-    btn.textContent = '...';
-    result.innerHTML = '';
+  const busy = (b) => {
+    elBtn.disabled=b;
+    elUrl.disabled=b;
+    elBtn.textContent = b ? "Shortening…" : "Shorten";
+    elCopy.disabled = b || !last;
+  };
 
-    try {
+  const fullShort = (s) => {
+    if (!s) return "";
+    if (s.startsWith("http://") || s.startsWith("https://")) return s;
+    const base = location.origin.replace(/\/$/, "");
+    return base + (s.startsWith("/") ? s : "/" + s);
+  };
 
-        const res = await fetch('/shorten', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url })
-        });
+  async function shorten(){
+    const url = elUrl.value.trim();
+    setMsg("");
+    last="";
+    elShort.textContent="";
+    elCopy.disabled=true;
 
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || 'error');
-
-        const shortUrl = location.origin + '/' + data.short;
-
-        result.innerHTML = `
-        <div class="success">
-        <div class="success-label">shortened</div>
-        <div class="short-url">
-        <a href="${shortUrl}" target="_blank">${shortUrl}</a>
-        <button class="copy" onclick="copy('${shortUrl}', this)">copy</button>
-        </div>
-        </div>`;
-
-        input.value = '';
-
-    } catch (e) {
-
-        result.innerHTML = `<div class="error">// ${e.message}</div>`;
-
-    } finally {
-
-        btn.disabled = false;
-        btn.textContent = 'Shorten';
-
+    if(!url){
+      setMsg("Enter a URL first.", true);
+      return;
     }
-}
 
-function copy(text, el) {
+    busy(true);
 
-    navigator.clipboard.writeText(text).then(() => {
-        el.textContent = 'copied!';
-        setTimeout(() => el.textContent = 'copy', 1500);
-    });
+    try{
+      const res = await fetch("/shorten",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({url})
+      });
 
-}
+      const data = await res.json().catch(()=>null);
+
+      if(!res.ok){
+        setMsg((data && (data.detail||data.message)) || "Request failed.", true);
+        return;
+      }
+
+      last = fullShort(data && data.short);
+
+      if(!last){
+        setMsg("No short URL returned.", true);
+        return;
+      }
+
+      elShort.textContent = last;
+      elShort.href = last;
+      elCopy.disabled=false;
+      setMsg("Done.");
+    }
+    catch{
+      setMsg("Network error.", true);
+    }
+    finally{
+      busy(false);
+    }
+  }
+
+  async function copyShort(){
+    if(!last) return;
+    try{
+      await navigator.clipboard.writeText(last);
+      setMsg("Copied.");
+    }
+    catch{
+      const ta=document.createElement("textarea");
+      ta.value=last;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      setMsg("Copied.");
+    }
+  }
 </script>
+
 </body>
 </html>
 """
 
 
-@app.get("/", response_class=HTMLResponse)
-def index():
-    return HTML
-
 
 @app.get("/healthz")
 def health():
-    return {
-        "status": "ok",
-        "ts": int(time.time())
-    }
-
+    return {"status": "ok", "ts": int(time.time())}
 
 @app.post("/shorten")
 async def shorten(req: Request):
-
     body = await req.json()
     url = body.get("url")
-
     if not url:
         raise HTTPException(400, "url required")
-
     short = hashlib.sha256(url.encode()).hexdigest()[:8]
-
     put_mapping(short, url)
-
-    return {
-        "short": short,
-        "url": url
-    }
-
+    return {"short": short, "url": url}
 
 @app.get("/{short_id}")
 def resolve(short_id: str):
-
     item = get_mapping(short_id)
-
     if not item:
         raise HTTPException(404, "not found")
-
     return RedirectResponse(item["url"])
