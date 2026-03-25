@@ -108,7 +108,7 @@ def home():
 
   <div>
     <div class="hero">
-      <h1>Jawwad’s URL Shortener</h1>
+      <h1>Uzayr’s URL Shortener</h1>
       <p>Turn long URLs into short, shareable links.</p>
     </div>
 
